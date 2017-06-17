@@ -45,7 +45,6 @@ import es.miotek.pablo_santos.buscatuplaya.model.MyItem;
  */
 public class Fragment_map extends Fragment implements OnMapReadyCallback {
 
-    private int prueba=1;
     //CONTROL DE COMUNIDADES PINTADAS
     private static boolean PINTADOCANARIAS = false;
     private static boolean PINTADONORTE=false;
