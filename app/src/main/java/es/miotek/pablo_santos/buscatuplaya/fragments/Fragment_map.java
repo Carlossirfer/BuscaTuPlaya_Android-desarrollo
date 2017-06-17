@@ -18,30 +18,25 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.TextView;
-import android.widget.Toast;
-
+import android.widget.ImageView;
 import com.google.android.gms.maps.CameraUpdate;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.MapView;
 import com.google.android.gms.maps.MapsInitializer;
 import com.google.android.gms.maps.OnMapReadyCallback;
-import com.google.android.gms.maps.SupportMapFragment;
-import com.google.android.gms.maps.model.CameraPosition;
+import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
-import com.google.maps.android.clustering.ClusterManager;
+import com.google.maps.android.clustering.Cluster;
+import com.google.maps.android.ui.IconGenerator;
 import com.parse.FindCallback;
 import com.parse.ParseException;
-import com.parse.ParseGeoPoint;
 import com.parse.ParseObject;
 import com.parse.ParseQuery;
-
 import java.util.ArrayList;
 import java.util.List;
-
 import es.miotek.pablo_santos.buscatuplaya.R;
 import es.miotek.pablo_santos.buscatuplaya.model.MyItem;
 
@@ -50,16 +45,21 @@ import es.miotek.pablo_santos.buscatuplaya.model.MyItem;
  */
 public class Fragment_map extends Fragment implements OnMapReadyCallback {
 
-    //CONTROL DE CLUSTER PINTADOS
+
+    //CONTROL DE COMUNIDADES PINTADAS
     private static boolean PINTADOCANARIAS = false;
     private static boolean PINTADONORTE=false;
-    private static boolean PINTADOSUR=false;
     private static boolean PINTADOTODO=false;
+    private static boolean PINTADONORESTE = false;
+    private static boolean PINTADOSURESTE = false;
 
+    //FRAGMENTO
     private View viewRoot;
+    private Context contexto;
 
     //COMUNIDADES AUTONOMAS SE CAMBIARA MAS ADELANTE
-    private String[] comunidadesEste={"Cataluña/Catalunya","Murcia, Region de","Comunitat Valenciana","Andalucía"};
+    private String[] comunidadesNorEste={"Cataluña/Catalunya","Illes Balears"};
+    private String[] comunidadesSurEste={"Murcia, Region de","Comunitat Valenciana","Andalucía"};
     private String[] comunidadesNorte={"Cantabria","Asturias, Principado de", "Galicia","País Vasco","Navarra"};
 
     //PARA EL MAPA
@@ -77,27 +77,92 @@ public class Fragment_map extends Fragment implements OnMapReadyCallback {
     //CLUSTERING
     private static es.miotek.pablo_santos.buscatuplaya.clustering.ClusterManager<MyItem> mClusterManager;
 
-    //DATOS DE LAS PLAYAS
+    //PLAYAS FILTRADAS POR COMUNIDADES
     public static ArrayList<MyItem> PLAYAS_NORTE=new ArrayList<>();
     public static ArrayList<MyItem> PLAYAS_SURESTE=new ArrayList<>();
+    public static ArrayList<MyItem> PLAYAS_NORESTE=new ArrayList<>();
     public static ArrayList<MyItem> PLAYAS_CANARIAS=new ArrayList<>();
     public static ArrayList<MyItem> ALLPLAYAS=new ArrayList<>();
 
+    //CLASE QUE NOS PERMITE CUSTOMIZAR LOS ITEMS DE LOS CLUSTER, PARA PONER LAS DIFERENTES BANDERAS DE COLORES
+    private class PersonRenderer extends es.miotek.pablo_santos.buscatuplaya.clustering.view.DefaultClusterRenderer<MyItem> {
+        private final IconGenerator mIconGenerator = new IconGenerator(contexto);
+        private final IconGenerator mClusterIconGenerator = new IconGenerator(contexto);
+        private final ImageView mImageView;
+        private final ImageView mClusterImageView;
+        private final int mDimension;
+
+        public PersonRenderer() {
+            super(contexto, mMap, mClusterManager);
+
+            View multiProfile = getLayoutInflater(null).inflate(R.layout.custom_item_cluster, null);
+            mClusterIconGenerator.setContentView(multiProfile);
+            mClusterImageView = (ImageView) multiProfile.findViewById(R.id.image);
+
+            mImageView = new ImageView(contexto);
+            mDimension = (int) getResources().getDimension(R.dimen.custom_profile_image);
+            mImageView.setLayoutParams(new ViewGroup.LayoutParams(mDimension, mDimension));
+            int padding = (int) getResources().getDimension(R.dimen.custom_profile_padding);
+            mImageView.setPadding(padding, padding, padding, padding);
+            mIconGenerator.setContentView(mImageView);
+        }
+
+        //PARA CUSTOMIZAR LA IMAGEN DE LA BANDERA DE LA PLAYA Y SUS DATOS A MOSTRAR
+        @Override
+        protected void onBeforeClusterItemRendered(MyItem person, MarkerOptions markerOptions) {
+            // Draw a single person.
+            // Set the info window to show their name.
+            markerOptions.icon(BitmapDescriptorFactory.fromResource(R.drawable.ic_bandera));
+        }
+
+//        @Override
+        //ESTE METODO PERMITIRA EN UN FUTURO CAMBIAR LOS CIRCULOS DE COLORES DE LOS CLUSTER CON EL NUMERO DE PLAYAS
+//        protected void onBeforeClusterRendered(Cluster<MyItem> cluster, MarkerOptions markerOptions) {
+//            // Draw multiple people.
+//            // Note: this method runs on the UI thread. Don't spend too much time in here (like in this example).
+//            List<Drawable> profilePhotos = new ArrayList<Drawable>(Math.min(4, cluster.getSize()));
+//            int width = mDimension;
+//            int height = mDimension;
+//
+//            for (Person p : cluster.getItems()) {
+//                // Draw 4 at most.
+//                if (profilePhotos.size() == 4) break;
+//                Drawable drawable = getResources().getDrawable(p.profilePhoto);
+//                drawable.setBounds(0, 0, width, height);
+//                profilePhotos.add(drawable);
+//            }
+//            MultiDrawable multiDrawable = new MultiDrawable(profilePhotos);
+//            multiDrawable.setBounds(0, 0, width, height);
+//
+//            mClusterImageView.setImageDrawable(multiDrawable);
+//            Bitmap icon = mClusterIconGenerator.makeIcon(String.valueOf(cluster.getSize()));
+//            markerOptions.icon(BitmapDescriptorFactory.fromBitmap(icon));
+//        }
+
+        @Override
+        protected boolean shouldRenderAsCluster(Cluster cluster) {
+            // Always render clusters.
+            return cluster.getSize() > 1;
+        }
+    }
+
+    //CONSTRUCTOR
     public Fragment_map() {
         // Required empty public constructor
     }
 
-
     @Override
-    public View onCreateView(LayoutInflater inflater, ViewGroup container,
-                             Bundle savedInstanceState) {
-        // Inflate the layout for this fragment
+    public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
+
+        //PARA EL CONTROL DE LA LOCALIZACION DEL MAPA
         locationManager = (LocationManager) getActivity().getSystemService(Context.LOCATION_SERVICE);
 
+        //ACTIVAMOS EL GPS SI HACE FALTA
         if (!GPSEnabled()) activarGPS();
 
-
+        contexto=getContext();
         viewRoot = inflater.inflate(R.layout.fragment_map, container, false);
+        //PARA INICIALIZAR EL MAPA
         MapsInitializer.initialize(this.getActivity());
         mapView = (MapView) viewRoot.findViewById(R.id.map);
         mapView.onCreate(savedInstanceState);
@@ -105,16 +170,14 @@ public class Fragment_map extends Fragment implements OnMapReadyCallback {
         return viewRoot;
     }
 
-
     @Override
     public void onActivityCreated(Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
-
+        //METODO QUE TRAE TODAS LAS PLAYAS DE LA BASE DE DATOS
         getAllPlayas();
-
-
     }
 
+    //METODO PARA FILTRAR LAS PLAYAS POR COMUNIDADES
     private void filtrarPlayas() {
 
         for (MyItem item:ALLPLAYAS){
@@ -127,17 +190,26 @@ public class Fragment_map extends Fragment implements OnMapReadyCallback {
                     break;
                 }
             }
-            for (int i=0;i<comunidadesEste.length;i++){
-                if (item.getmComunidad().equals(comunidadesEste[i])){
+            for (int i=0;i<comunidadesNorEste.length;i++){
+                if (item.getmComunidad().equals(comunidadesNorEste[i])){
+                    PLAYAS_NORESTE .add(item);
+                    break;
+                }
+            }
+            for (int i=0;i<comunidadesSurEste.length;i++){
+                if (item.getmComunidad().equals(comunidadesSurEste[i])){
                     PLAYAS_SURESTE .add(item);
                     break;
                 }
             }
 
+
+
         }
 
     }
 
+    //METODO PARA TRAER TODAS LAS PLAYAS
     private void getAllPlayas() {
 
         ArrayList<String> campos=new ArrayList<>();
@@ -165,24 +237,41 @@ public class Fragment_map extends Fragment implements OnMapReadyCallback {
         });
     }
 
+    //METODO QUE SE EJECUTA AL CARGAR EL MAPA
     @Override
     public void onMapReady(GoogleMap googleMap) {
+        //GOOGLE MAP
         mMap = googleMap;
 
+        //PARA CLUSTERING GOOGLE MAPS
         mClusterManager = new es.miotek.pablo_santos.buscatuplaya.clustering.ClusterManager<MyItem>(getContext(), mMap);
+
+        //INDICAMOS EL RENDERER QUE NOS SIRVE PARA CUSTOMINAR LOS CLUSTER
+        mClusterManager.setRenderer(new PersonRenderer());
+
+        //EVENTO PARA RECOGER LA POSICION DEL MAPA
         mMap.setOnCameraIdleListener(mClusterManager);
+
+        //EVENTO CLICK EN MARKET. MOSTRARA UNA NUEVA VISTA.
         mMap.setOnMarkerClickListener(mClusterManager);
 
+
         if (GPSEnabled())
+            //RECOGEMOS NUESTRA UBICACION SI EL GPS ESTA ACTIVADO
             miUbicacion(getContext());
         else{
+            //PONEMOS UNA UBICACION DETERMINADA SI GPS ESTA INACTIVO
             LatLng coordenadas = new LatLng(40.4893538, -3.6827461);
             CameraUpdate miUbicacion = CameraUpdateFactory.newLatLngZoom(coordenadas, 5);
             mMap.animateCamera(miUbicacion);
         }
+
+
     }
 
-    public static void getPlayas(final Context contexto){
+    //METODO PARA EL CONTROL DE LAS PLAYAS PINTADAS Y ACTUALIZAR EL MAPA.
+    //UTILIZADO PARA PINTAR POR ZONAS EL MAPA
+    public static void pintaPlayas(final Context contexto){
 
         if (PLAYAS_SURESTE.size()==0&&PLAYAS_NORTE.size()==0&&ALLPLAYAS.size()==0)return;
         if (ZOOM<=6.12){
@@ -194,7 +283,8 @@ public class Fragment_map extends Fragment implements OnMapReadyCallback {
                 mClusterManager.clearItems();
                 PINTADOTODO=true;
                 PINTADONORTE=false;
-                PINTADOSUR=false;
+                PINTADOSURESTE=false;
+                PINTADONORESTE=false;
                 mClusterManager.addItems(ALLPLAYAS);
 //                Toast.makeText(contexto, "TODO EL MAPA: BANDERA SUR"+PINTADOSUR+" BANDERA NORTE: "+PINTADONORTE, Toast.LENGTH_SHORT).show();
             }
@@ -206,26 +296,40 @@ public class Fragment_map extends Fragment implements OnMapReadyCallback {
                 if (location!=null)Fragment_map.agregarMarcador(location);
                 mClusterManager.clearItems();
                 PINTADONORTE=true;
-                PINTADOSUR=false;
+                PINTADOSURESTE=false;
+                PINTADONORESTE=false;
                 PINTADOCANARIAS=false;
                 mClusterManager.addItems(PLAYAS_NORTE);
 //                Toast.makeText(contexto, "NORTE: BANDERA SUR"+PINTADOSUR, Toast.LENGTH_SHORT).show();
-            }else if(LAT<42.0&&LAT>35&&!PINTADOSUR){
-                //LIMPIAR MAPA
-                mMap.clear();
-                if (location!=null)Fragment_map.agregarMarcador(location);
-                mClusterManager.clearItems();
-                PINTADOSUR=true;
-                PINTADONORTE=false;
-                PINTADOCANARIAS=false;
-                mClusterManager.addItems(PLAYAS_SURESTE);
-//                Toast.makeText(contexto, "SUR Y ESTE: BANDERA NORTE "+PINTADONORTE, Toast.LENGTH_SHORT).show();
+            }else if(LAT<42.0&&LAT>35&&(!PINTADONORESTE||!PINTADOSURESTE)){
+                if (LNG<0&&!PINTADOSURESTE){
+                    //LIMPIAR MAPA
+                    mMap.clear();
+                    if (location!=null)Fragment_map.agregarMarcador(location);
+                    mClusterManager.clearItems();
+                    PINTADOSURESTE=true;
+                    PINTADONORESTE=false;
+                    PINTADONORTE=false;
+                    PINTADOCANARIAS=false;
+                    mClusterManager.addItems(PLAYAS_SURESTE);
+                }else if (LNG>0&&!PINTADONORESTE){
+                    //LIMPIAR MAPA
+                    mMap.clear();
+                    if (location!=null)Fragment_map.agregarMarcador(location);
+                    mClusterManager.clearItems();
+                    PINTADONORESTE=true;
+                    PINTADONORTE=false;
+                    PINTADOSURESTE=false;
+                    PINTADOCANARIAS=false;
+                    mClusterManager.addItems(PLAYAS_NORESTE);
+                }
             }else if (LAT<=33&&!PINTADOCANARIAS){
                 mMap.clear();
                 if (location!=null)Fragment_map.agregarMarcador(location);
                 mClusterManager.clearItems();
                 PINTADOCANARIAS=true;
-                PINTADOSUR=false;
+                PINTADOSURESTE=false;
+                PINTADONORESTE=false;
                 PINTADONORTE=false;
                 mClusterManager.addItems(PLAYAS_CANARIAS);
 //                Toast.makeText(contexto, "CANARIAS: BANDERA SUR"+PINTADOSUR+" BANDERA NORTE: "+PINTADONORTE, Toast.LENGTH_SHORT).show();
@@ -233,10 +337,12 @@ public class Fragment_map extends Fragment implements OnMapReadyCallback {
         }
     }
 
+    //METODO PARA SABER SI EL GPS ESTA ACTIVADO
     private boolean GPSEnabled() {
         return isGPSEnabled = locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
     }
 
+    //METODO PARA AGREGAR UN MARCADOR EN EL MAPA
     public static void agregarMarcador(double lat, double lng) {
         LatLng coordenadas = new LatLng(lat, lng);
         CameraUpdate miUbicacion = CameraUpdateFactory.newLatLngZoom(coordenadas, 6);
@@ -247,6 +353,8 @@ public class Fragment_map extends Fragment implements OnMapReadyCallback {
 
        mMap.animateCamera(miUbicacion);
     }
+
+    //METODO PARA AGREGAR UN MARCADOR EN EL MAPA
     public static void agregarMarcador(Location loc){
         LatLng coordenadas = new LatLng(loc.getLatitude(), loc.getLongitude());
         CameraUpdate miUbicacion = CameraUpdateFactory.newLatLngZoom(coordenadas, 6);
@@ -256,14 +364,14 @@ public class Fragment_map extends Fragment implements OnMapReadyCallback {
                 .title("Ubicación Actual"));
     }
 
+    //METODO QUE NOS COMPRUEBA SI HAY UNA NUEVA UBICACION
     private static void actualizarUbicacion(Location location) {
         if (location != null) {
-//            lat = location.getLatitude();
-//            lng = location.getLongitude();
             agregarMarcador(location.getLatitude(), location.getLongitude());
         }
     }
 
+    //METODO PARA OBTENER NUESTRA UBICACION
     private static void miUbicacion(Context contexto) {
         if (ActivityCompat.checkSelfPermission(contexto, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(contexto, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             return;
@@ -273,6 +381,7 @@ public class Fragment_map extends Fragment implements OnMapReadyCallback {
         if (location==null)locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 15000, 0, locListener);
     }
 
+    //LISTENER PARA EL CAMBIO DE UBICACION
     static LocationListener locListener = new LocationListener() {
         @Override
         public void onLocationChanged(Location location) {
@@ -299,9 +408,7 @@ public class Fragment_map extends Fragment implements OnMapReadyCallback {
         }
     };
 
-    /**
-     * Function to show settings alert dialog
-     */
+    //DIALOGO QUE NOS LLEVA A LOS AJUSTER PARA ACTIVAR EL GPS
     public void activarGPS() {
         AlertDialog.Builder alertDialog = new AlertDialog.Builder(this.getContext());
 
@@ -334,6 +441,7 @@ public class Fragment_map extends Fragment implements OnMapReadyCallback {
         // Showing Alert Message
         alertDialog.show();
     }
+
 
     @Override
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
@@ -385,4 +493,5 @@ public class Fragment_map extends Fragment implements OnMapReadyCallback {
             mapView.onSaveInstanceState(outState);
         }
     }
+
 }

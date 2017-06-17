@@ -734,6 +734,9 @@ public class DefaultClusterRenderer<T extends ClusterItem > implements ClusterRe
      * Called before the marker for a ClusterItem is added to the map.
      */
     protected void onBeforeClusterItemRendered(T item, MarkerOptions markerOptions) {
+
+        markerOptions.icon(BitmapDescriptorFactory.fromResource(es.miotek.pablo_santos.buscatuplaya.R.drawable.ic_bandera));
+
     }
 
     /**
@@ -756,12 +759,14 @@ public class DefaultClusterRenderer<T extends ClusterItem > implements ClusterRe
      * Called after the marker for a Cluster has been added to the map.
      */
     protected void onClusterRendered(Cluster<T> cluster, Marker marker) {
+
     }
 
     /**
      * Called after the marker for a ClusterItem has been added to the map.
      */
     protected void onClusterItemRendered(T clusterItem, Marker marker) {
+
     }
 
     /**

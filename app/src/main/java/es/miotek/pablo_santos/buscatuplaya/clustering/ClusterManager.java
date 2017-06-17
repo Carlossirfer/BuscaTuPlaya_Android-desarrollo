@@ -19,8 +19,6 @@ package es.miotek.pablo_santos.buscatuplaya.clustering;
 import android.content.Context;
 import android.os.AsyncTask;
 import android.os.Build;
-import android.util.Log;
-import android.widget.Toast;
 
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.model.CameraPosition;
@@ -55,7 +53,6 @@ public class ClusterManager<T extends ClusterItem> implements
     private final MarkerManager mMarkerManager;
     private final MarkerManager.Collection mMarkers;
     private final MarkerManager.Collection mClusterMarkers;
-    private float zoom=0;
     private Context contexto;
 
     private Algorithm<T> mAlgorithm;
@@ -209,9 +206,8 @@ public class ClusterManager<T extends ClusterItem> implements
         Fragment_map.LNG=mMap.getCameraPosition().target.longitude;
         Fragment_map.ZOOM=mMap.getCameraPosition().zoom;
 
-        //NOS TRAEMOS LAS PLAYAS
-        Fragment_map.getPlayas(contexto);
-
+        //PINTAMOS LAS PLAYAS
+        Fragment_map.pintaPlayas(contexto);
 
         if (mRenderer instanceof GoogleMap.OnCameraIdleListener) {
             ((GoogleMap.OnCameraIdleListener) mRenderer).onCameraIdle();

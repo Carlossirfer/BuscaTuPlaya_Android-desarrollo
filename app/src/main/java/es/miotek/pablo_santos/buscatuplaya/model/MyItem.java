@@ -23,15 +23,7 @@ public class MyItem implements ClusterItem {
     private final LatLng mPosition;
     private String mTitle;
     private String mSnippet;
-
-    public String getmComunidad() {
-        return mComunidad;
-    }
-
-    public void setmComunidad(String mComunidad) {
-        this.mComunidad = mComunidad;
-    }
-
+    private int mcolor;
     private String mComunidad;
 
     public MyItem(double lat, double lng,String comunidad) {
@@ -55,18 +47,18 @@ public class MyItem implements ClusterItem {
 
     public String getSnippet() { return mSnippet; }
 
-    /**
-     * Set the title of the marker
-     * @param title string to be set as title
-     */
+    public String getmComunidad() {
+        return mComunidad;
+    }
+
+    public void setmComunidad(String mComunidad) {
+        this.mComunidad = mComunidad;
+    }
+
     public void setTitle(String title) {
         mTitle = title;
     }
 
-    /**
-     * Set the description of the marker
-     * @param snippet string to be set as snippet
-     */
     public void setSnippet(String snippet) {
         mSnippet = snippet;
     }
